@@ -70,3 +70,13 @@ Roadmap reviewer (wp1 A-gate): 01a09a17-18f0-7422-82a6-c3e55c5827e4 (Descartes)
 
 - 15/15 verdicts collected; synthesis written with dispositions; zero
   unresolved P0/P1 before wp4.
+
+## Live re-verification of the Pi image fix (wp6 criterion)
+
+Post-merge fix review (Aquinas, grok-4.6): VERDICT pass on both #4496/#4497.
+User-authorized dogfood refresh 2026-09-13 ~19:35 KST:
+~/Developer/new/700_projects/opencodex ff'd to eb81eaaf8d, ocx service
+restart (new pid 44175). The previously-blind Pi-style probe
+({type:"image", data, mimeType} in a tool message) now reaches claude-opus-5
+and is described accurately (prompt_tokens 128 pre-fix -> 181 post-fix, full
+Korean-screenshot description). wp6 live criterion MET.
