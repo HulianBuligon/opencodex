@@ -47,3 +47,11 @@
 
 - `skills/ocx/` 히트 없음 (조사 완료). `ocx login devin-cli` 언급 문서가 있으면
   deprecation 언급 추가.
+
+## 결과 기록 (2026-09-13)
+
+wp-core 빌드에서 함께 랜딩했다 (커밋 66ca5131d): GUI 매핑 2파일 + 아이콘 README,
+docs-site 8개 로케일의 adapters.md/providers.md, structure 문서 4곳의 경로 재지정.
+expected-prices.ts와 usage-cost.test.ts는 설계대로 무수정 — 양쪽 id의 오버레이를 유지해
+리터럴 `devin-cli`로 키잉된 과거 사용량이 계속 가격이 잡힌다. fr의 파일레벨 히트 2곳은
+`devinés`/`devine`(불어 "추측한") 오탐이었다.
