@@ -2,9 +2,14 @@
 
 ## Design
 
-364 commits (origin/main..origin/dev, chronological via
-`git rev-list --reverse origin/main..origin/dev`) split into 14 slices of 26
-plus one security-boundary lane = 15 subagents, model devin/swe-2, effort high.
+364 commits (origin/main..981b53e7d0110591f4fbdf4751fade1801645860,
+chronological via `git rev-list --reverse origin/main..981b53e7d0`) split
+into 14 slices of 26 plus one security-boundary lane = 15 subagents (first
+wave devin/swe-2; 6 rate-limited lanes retried on xai/grok-4.6 after the user
+added it to the parallel pool). The two audit-spawned fixes #4496/#4497
+(commits 4b0a62b215/248670e9f0, 9b9675b202/eb81eaaf8d) are a NAMED POST-WINDOW
+DELTA: covered by their own PR CI, CodeRabbit, and the Aquinas post-merge
+review — not claimed as covered by the 364-commit lane audit.
 Subagents share the parent worktree read-only: prompts forbid edits, commits,
 branch-level git ops, fetches, and any local suite/build/typecheck run.
 
