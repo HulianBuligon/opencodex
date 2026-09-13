@@ -17,12 +17,13 @@
    re-evaluate.
 3. Main promotion in a fresh scratch worktree (same recipe as wp4 INCLUDING
    the SHA pinning: merge and restore use
-   981b53e7d0110591f4fbdf4751fade1801645860, never origin/dev; branch off
+   eb81eaaf8d02210b9b0782d90ff6d6074b7bc892, never origin/dev; branch off
    origin/main, branch name codex/release-2530-main, package.json version
    2.53.0, tree = audited dev product tree):
-   - The promoted product tree stays 981b53e7d0 (the audited+CI-green tree).
-     The version pre-move on dev does not enter the product tree; 2.52.0 used
-     the same shape (dev was already 2.53.0 when 2.52.0 shipped).
+   - The promoted product tree stays eb81eaaf8d (audited tree 981b53e7d0 plus
+     the two reviewed fix merges). The version pre-move on dev does not enter
+     the product tree; 2.52.0 used the same shape (dev was already 2.53.0 when
+     2.52.0 shipped).
    - Commit "release: promote verified 2.53.0 product tree to main", push
      --no-verify, PR to main, wait hosted CI, merge.
 4. Publish: wait for the push-event ci.yml AND service-lifecycle.yml successes

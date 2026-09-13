@@ -3,18 +3,20 @@
 ## Preconditions
 
 - wp2 deployable verdict, wp3 zero unresolved P0/P1, green exact-head hosted CI
-  on 981b53e7d0 (or the then-current dev head if dev moved; re-verify SHA).
+  on eb81eaaf8d (dev head after the two audit-spawned fixes #4496/#4497; the
+  364-commit audit covers the tree through 981b53e7d0, the two fix merges are
+  covered by their own PR CI + independent post-merge review).
 
 ## Procedure (exact commands, run from a scratch worktree, NOT this session's)
 
 1. `git fetch origin`; record dev SHA as DEV_SHA.
 2. `git worktree add /tmp/ocx-rel-2530-preview origin/preview --detach`
 3. In scratch: `git switch -c codex/release-2530-preview-20260913`
-4. `git merge --no-commit --no-ff -X theirs 981b53e7d0110591f4fbdf4751fade1801645860 || true`
+4. `git merge --no-commit --no-ff -X theirs eb81eaaf8d02210b9b0782d90ff6d6074b7bc892 || true`
    (PINNED to the audited SHA — reviewer P1: never `origin/dev`, which may
    have moved past audit coverage by execution time. If dev must move into the
    promoted tree, the delta needs its own audit + exact-head CI first.)
-5. `git restore --source=981b53e7d0110591f4fbdf4751fade1801645860 --staged --worktree -- .`
+5. `git restore --source=eb81eaaf8d02210b9b0782d90ff6d6074b7bc892 --staged --worktree -- .`
    (tree := audited dev tree, pinned same as step 4)
 6. Set package.json version to 2.53.0-preview.20260913 (matching the preview
    channel pattern 2.52.0-preview.20260912).
