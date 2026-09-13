@@ -89,3 +89,12 @@ None open. The two confirmed blockers were fixed and merged:
 15/15 lanes closed, zero unresolved P0/P1. The dev tree at eb81eaaf8d (audit
 tree + two reviewed fix merges, exact-head CI green) is cleared for wp4
 promotion.
+
+## Follow-up issues filed
+
+- #4501 — vision describer eligibility ignores operator modelCapabilities on
+  native rows (lane03 P2).
+- #4502 — audio transcription/live-call outcome accounting pre-sets 502
+  before body validation (lane09 P2 pair).
+- #4503 — devin provider merge detached rekey host-selection window (lane13,
+  downgraded) + direct tool-envelope fixture note for #4497 (Aquinas P3).
