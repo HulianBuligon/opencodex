@@ -15,3 +15,11 @@
   success at 11:08 UTC (+ @bitkyc08/opencodex@2.53.0, provenance signed,
   sigstore logIndex 2817209110). npm async processing; awaiting registry
   visibility of latest=2.53.0.
+- npm latest=2.53.0 CONFIRMED 11:20 UTC (gitHead aa05b3ec53); preview
+  2.53.0-preview.20260913 (gitHead 90ff8aa1dc). GitHub release v2.53.0
+  published (not draft).
+- Post-release dev CI on 94063d0798 (current dev, includes owner-merged
+  #4500): Cross-platform CI 34752922642 SUCCESS.
+- Banach (grok-4.6) release-chain review: VERDICT pass — main tree
+  byte-identical to eb81eaaf8d, assert-ahead holds, exact-head hosted proof
+  intact, registry matches; P3 residual smoke latency only. wp5 DONE.
