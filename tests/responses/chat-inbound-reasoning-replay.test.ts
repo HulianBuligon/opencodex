@@ -35,6 +35,7 @@ describe("F6 assistant reasoning survives translation", () => {
     const idx = out.findIndex(i => i.type === "reasoning");
 
     expect(idx).toBeGreaterThanOrEqual(0);
+    expect(out[idx]!.summary).toEqual([]);
     expect(out[idx]!.content).toEqual([{ type: "reasoning_text", text: "prior analysis" }]);
     // Adjacency matters: the parser prepends a buffered reasoning item to the NEXT
     // assistant message, so it must sit immediately before it.
@@ -57,6 +58,9 @@ describe("F6 assistant reasoning survives translation", () => {
   test("no signature, encrypted payload or item id is forged", () => {
     const item = items(body([USER, { role: "assistant", content: "a", reasoning_content: "t" }])).find(i => i.type === "reasoning")!;
 
+    // Raw provider reasoning must not be reclassified as a visible summary merely to
+    // satisfy the Responses wire requirement.
+    expect(item.summary).toEqual([]);
     expect(item.signature).toBeUndefined();
     expect(item.encrypted_content).toBeUndefined();
     expect(item.id).toBeUndefined();

@@ -303,7 +303,9 @@ An assistant turn's `reasoning_content` or `reasoning_details` is carried into t
 projection as a `reasoning` input item emitted immediately before its assistant
 message, matching the parser's buffer-and-prepend adjacency. Only representable
 plaintext crosses: no signature, encrypted payload or provider item id is
-reconstructed, because those attest to content this proxy never received. Opaque
+reconstructed, because those attest to content this proxy never received. The item
+always carries `summary: []`, which satisfies the Responses replay shape without
+publishing raw provider reasoning as a user-visible summary. Opaque
 reasoning replay across a Chat boundary remains unimplemented by design.
 `presence_penalty` and `frequency_penalty` are carried too; per-model
 `noPenaltyModels` opt-outs still apply at the adapter.

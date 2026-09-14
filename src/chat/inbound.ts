@@ -310,10 +310,16 @@ export function chatCompletionsToResponsesBody(raw: unknown): Rec {
         // Responses assistant item schema admits only output content blocks, so there
         // is no attachment point on the message itself, and the parser buffers a
         // reasoning item and prepends it to the NEXT assistant message. Emitting it
-        // here keeps that adjacency intact.
+        // here keeps that adjacency intact. OpenAI requires `summary` on replayed
+        // reasoning items; keep it empty because this is raw provider reasoning, not
+        // a caller-authorized user-visible summary.
         const reasoningText = assistantReasoningText(msg);
         if (reasoningText !== undefined) {
-          input.push({ type: "reasoning", content: [{ type: "reasoning_text", text: reasoningText }] });
+          input.push({
+            type: "reasoning",
+            summary: [],
+            content: [{ type: "reasoning_text", text: reasoningText }],
+          });
         }
         const blocks = assistantContentToBlocks(msg.content);
         if (blocks.length > 0) input.push({ type: "message", role: "assistant", content: blocks });
