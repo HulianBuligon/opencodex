@@ -221,6 +221,65 @@ describe("codebuddy runTurn streams a headless turn", () => {
     expect(child.written.join("")).toContain('"text":"hello"');
   });
 
+  test("refuses full-width DSML tool markup instead of forwarding or executing it", async () => {
+    const leaked = "I'll inspect it.\n<｜｜DSML｜｜ calls><｜｜DSML｜｜ invoke name=\"functions.exec\">"
+      + "secret-command</｜｜DSML｜｜ invoke></｜｜DSML｜｜ calls>";
+    const stdout = [
+      enc.encode(`${JSON.stringify({
+        type: "assistant",
+        message: { role: "assistant", content: [{ type: "text", text: leaked }] },
+      })}\n`),
+      enc.encode('{"type":"result","subtype":"success","is_error":false}\n'),
+    ];
+    const adapter = createCodeBuddyAdapter(provider(), {
+      spawn: () => fakeChild(stdout) as unknown as ChildProcess,
+      which: () => "/usr/bin/codebuddy",
+      killGraceMs: 20,
+    });
+
+    const events = await run(adapter, parsed());
+    expect(events.filter(event => event.type === "text_delta"))
+      .toEqual([{ type: "text_delta", text: "I'll inspect it.\n" }]);
+    expect(events.some(event => event.type === "done")).toBe(false);
+    const terminal = events.at(-1);
+    expect(terminal).toMatchObject({
+      type: "error",
+      code: "vendor_scaffold_detected",
+      retryable: false,
+      status: 502,
+    });
+    if (terminal?.type !== "error") throw new Error("expected fail-closed terminal");
+    expect(terminal.message).not.toContain("secret-command");
+    expect(terminal.message).not.toContain("DSML");
+  });
+
+  test("detects a DSML marker split across streamed text deltas", async () => {
+    const frame = (text: string) => `${JSON.stringify({
+      type: "stream_event",
+      event: { type: "content_block_delta", delta: { type: "text_delta", text } },
+    })}\n`;
+    const stdout = [
+      enc.encode(frame("Safe prefix. <｜｜DS")),
+      enc.encode(frame("ML｜｜ invoke name=\"functions.exec\">private-body")),
+      enc.encode('{"type":"result","subtype":"success","is_error":false}\n'),
+    ];
+    const adapter = createCodeBuddyAdapter(provider(), {
+      spawn: () => fakeChild(stdout) as unknown as ChildProcess,
+      which: () => "/usr/bin/codebuddy",
+      killGraceMs: 20,
+    });
+
+    const events = await run(adapter, parsed());
+    const text = events
+      .filter(event => event.type === "text_delta")
+      .map(event => event.type === "text_delta" ? event.text : "")
+      .join("");
+    expect(text).toBe("Safe prefix. ");
+    expect(text).not.toContain("private-body");
+    expect(events.at(-1)).toMatchObject({ type: "error", code: "vendor_scaffold_detected" });
+    expect(events.some(event => event.type === "done")).toBe(false);
+  });
+
   test("region isolation: the global adapter never spawns with the CN environment", async () => {
     let seenEnv: NodeJS.ProcessEnv | undefined;
     const spawn: SpawnFn = (_cmd, _args, opts) => { seenEnv = opts.env as NodeJS.ProcessEnv; return fakeChild([enc.encode('{"type":"result","subtype":"success"}\n')]) as unknown as ChildProcess; };
