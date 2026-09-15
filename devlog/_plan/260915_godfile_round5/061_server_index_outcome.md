@@ -46,3 +46,27 @@ CI typecheck 가 잡았다. 이 워크트리에 node_modules 가 없는 한 이 
 core.ts 쪽이 쓴 "모듈 목록 상수 + 목록과 import 그래프 일치 단언" 방식이 이 문제를 구조적으로 닫는다.
 다음 라운드는 그 방식을 먼저 쓴다.
 
+
+## 오라클 누락 세 번째, 그리고 방법을 바꾼 이유
+
+`tests/server/loopback-listener-integration.test.ts` 의 "seams the runtime cannot defend" 가
+세 번째 누락이었다. `bun run test:changed` 가 40초에 잡았다.
+
+이 오라클은 경로를 `join(process.cwd(), "src", "server", "index.ts")` 로 조립한다. 내가 만든 탐지기는
+문자열 리터럴을 뽑아 `src/` 를 붙여 해석해보는 방식이라 후보가 `index.ts`, `src/index.ts` 였고
+`src/server/index.ts` 에 닿지 못했다. bridge 때는 `repoPath("src", ...relative.split("/"))` 에,
+server/index 때는 같은 파일 안 다른 describe 에, 여기서는 다중 세그먼트 조립에 걸렸다.
+
+세 번 다 형태가 다르다. 탐지기를 한 번 더 넓히는 것으로는 닫히지 않는다는 뜻이다. 실제로 닫는 방법은
+두 개뿐이었다.
+
+하나는 `core.ts` 쪽이 쓴 방식이다. 모듈 목록을 상수로 두고, 그 목록이 실제 import 그래프와 같은지
+테스트가 단언한다. 목록에 없는 리프를 추가하면 그 테스트가 실패하므로 오라클이 조용해질 수 없다.
+
+다른 하나는 `bun run test:changed` 다. 변경 파일의 import 그래프를 따라 테스트를 고르므로 어떤 형태로
+경로를 조립했든 그 테스트를 실행한다. 이번에 주 체크아웃의 `node_modules` 를 링크해서 처음 돌렸고,
+40초에 105파일 2,249개를 돌려 한 건을 찾았다. 앞선 두 번은 CI 한 바퀴(수십 분)를 태워서 알았다.
+
+다음 라운드의 순서는 이렇게 고정한다. 링크를 먼저 걸고, 분해 직후 `test:changed` 를 돌리고,
+그 다음에 오라클 목록을 손으로 본다. 정적 탐지기는 보조 수단이지 1차 방어선이 아니다.
+
