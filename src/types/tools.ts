@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 export interface OcxTool {
   name: string;
   description: string;
@@ -26,9 +28,47 @@ export interface OcxTool {
  * "<namespace>__<name>" so they survive the chat-completions function-tool format;
  * the proxy maps this back to {namespace, name} on the return trip (Codex routes MCP
  * calls by an explicit `namespace` field, not by parsing the name).
+ *
+ * Strict gateways bound function names (Command Code's AI gateway rejects `name` over
+ * 64 characters — a real case is
+ * "mcp__codex_apps__safety_settings___prepare_parental_control_update", 65). Flattened
+ * names past the bound get a deterministic, reversible bounded alias instead: the
+ * longest prefix that fits plus a 12-hex sha256 digest of the native identity, so the
+ * alias is stable across restarts and the tool bridge maps restore the client's own
+ * {namespace, name} on the return trip. The digest is derived from the identity alone
+ * (never declaration order), and aliases are memoized per native identity.
  */
+const TOOL_NAME_WIRE_LIMIT = 64;
+const BOUNDED_ALIAS_DIGEST_CHARS = 12;
+const BOUNDED_ALIAS_SUFFIX_LENGTH = BOUNDED_ALIAS_DIGEST_CHARS + 1;
+
+const boundedToolAliasByNative = new Map<string, string>();
+const claimedBoundedToolAliases = new Set<string>();
+
+function boundedToolWireAlias(namespace: string | undefined, name: string, flat: string): string {
+  const nativeKey = `${namespace ?? ""}\u0000${name}`;
+  const memo = boundedToolAliasByNative.get(nativeKey);
+  if (memo !== undefined) return memo;
+  for (let attempt = 0; ; attempt += 1) {
+    const digest = createHash("sha256")
+      .update(`${nativeKey}\0${attempt}`)
+      .digest("hex")
+      .slice(0, BOUNDED_ALIAS_DIGEST_CHARS);
+    const candidate =
+      `${flat.slice(0, TOOL_NAME_WIRE_LIMIT - BOUNDED_ALIAS_SUFFIX_LENGTH)}_${digest}`;
+    // Attempt 0 collides only on a 48-bit digest match; the loop keeps a collision from
+    // ever shipping a duplicate wire name, mirroring caller-driven alias tables.
+    if (claimedBoundedToolAliases.has(candidate)) continue;
+    claimedBoundedToolAliases.add(candidate);
+    boundedToolAliasByNative.set(nativeKey, candidate);
+    return candidate;
+  }
+}
+
 export function namespacedToolName(namespace: string | undefined, name: string): string {
-  return namespace ? `${namespace}__${name}` : name;
+  const flat = namespace ? `${namespace}__${name}` : name;
+  if (flat.length <= TOOL_NAME_WIRE_LIMIT) return flat;
+  return boundedToolWireAlias(namespace, name, flat);
 }
 
 /**
@@ -39,7 +79,15 @@ export function namespacedToolName(namespace: string | undefined, name: string):
  * (mirroring the second entry of `toolChoiceAliases`). See #3402.
  */
 export function dottedToolName(namespace: string | undefined, name: string): string {
-  return namespace ? `${namespace}.${name}` : name;
+  if (!namespace) return name;
+  const canonical = `${namespace}__${name}`;
+  // A bounded alias has no dotted spelling: it is already at the wire limit, so re-spelling
+  // it with a dot would hand the model a name the gateway rejects. The provider only ever
+  // sees — and can only echo — the alias itself.
+  if (canonical.length > TOOL_NAME_WIRE_LIMIT) {
+    return boundedToolWireAlias(namespace, name, canonical);
+  }
+  return `${namespace}.${name}`;
 }
 
 /**
