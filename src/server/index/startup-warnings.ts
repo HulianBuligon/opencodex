@@ -56,7 +56,6 @@ import {
   type PackageTreeIntegrityGuard,
 } from "../../lib/package-tree-integrity";
 import type { LiveSidebandWebSocketFactory } from "./live-sideband";
-import { startServer } from "../index";
 
 // GUI static serving extracted to ./server/gui-static. Re-exported below to keep the
 // "../src/server" import surface stable for tests/callers.

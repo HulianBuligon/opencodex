@@ -92,7 +92,15 @@ describe("loopback listener policy view", () => {
 });
 
 describe("local client inference wires on the loopback listener (#4236)", () => {
-  const source = readFileSync(new URL("../../src/server/index.ts", import.meta.url), "utf8");
+  // src/server/index.ts is a facade now. The allowlist closure stayed in the composition root
+  // while the route branches moved into the serve-options leaf, and the tests below read both:
+  // the allowlist shape from the root, the chat wire's CORS tail from the leaf. Reading only
+  // the facade left indexOf at -1 and sliced an empty branch, so the CORS assertions passed
+  // without checking anything.
+  const source = [
+    readFileSync(new URL("../../src/server/index.ts", import.meta.url), "utf8"),
+    readFileSync(new URL("../../src/server/index/serve-options.ts", import.meta.url), "utf8"),
+  ].join("\n");
 
   test("the allowlist admits all three wires as POST and nothing else about them", () => {
     // The allowlist is a closure inside startServer, so this reads the entry itself. The
