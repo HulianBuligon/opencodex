@@ -38,7 +38,6 @@ describe("bounded tool wire names (#4679)", () => {
     expect(wire.length).toBeLessThanOrEqual(64);
     expect(namespacedToolName(undefined, name)).toBe(wire);
   });
-});
 
   test("tool choice aliases collapse to a single entry for a bounded alias", () => {
     const identity = { namespace: "mcp__codex_apps__safety_settings", name: "prepare_parental_control_update" };
@@ -66,3 +65,4 @@ describe("bounded tool wire names (#4679)", () => {
     expect(second.stdout.trim()).toBe(alias);
     expect(namespacedToolName(identity.namespace, identity.name)).toBe(alias);
   });
+});
