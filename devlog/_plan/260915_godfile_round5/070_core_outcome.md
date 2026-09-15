@@ -46,3 +46,49 @@ core.ts 쪽은 `tests/helpers/responses-core-source.ts` 에 모듈 목록을 상
 2,000줄 게이트는 통과하지만 한 파일이 하나의 일을 한다고 말하기는 어렵다. 다음 라운드의 후보는
 줄 수가 아니라 이런 "게이트는 통과하는데 여전히 큰" 리프들이다.
 
+
+## 이 산출물에 대한 편입 검토
+
+읽기만 하고 판정한 평가를 남긴다. 편입을 결정한 근거이자, 다음 라운드가 무엇을 고칠지의 목록이다.
+
+설계는 이 라운드의 다른 네 건보다 어렵고 결과도 낫다. 나머지는 전부 순수 이동이었고 이것은
+저장소에서 가장 위험한 핫 경로를 실제로 재구성했다. `handleResponsesInner` 가 85줄 파이프라인이 됐고
+각 단계가 상태 객체 아니면 `Response` 를 반환해서 `if (x instanceof Response) return x` 한 줄로 원본의
+조기 반환을 보존한다. 예외로 흐름을 바꾸는 방식을 택하지 않았고, admission lease 의 바깥쪽 `finally` 도
+최상위에 그대로 남아 있다.
+
+가변 상태 처리가 특히 정확하다. getter/setter 의 타입을 새로 적지 않고 `typeof rateLimitRetries` 처럼
+원래 지역 변수에 묶어 썼다. 타입을 따로 적어두면 나중에 원본만 바뀌어 조용히 어긋난다. 라운드5 의
+`serveOptions` 추출이 같은 함정을 만났고, 이쪽이 더 깔끔하다.
+
+`core-modules.test.ts` 는 이 라운드에서 가장 값어치 있는 장치다. `core.ts` 에서 형제 import 를 따라
+그래프를 걷고, 발견된 소유자 집합이 선언된 목록과 양방향으로 같은지 단언하고, 각 모듈이 2,000줄 미만인지
+확인하고, 그래프가 비순환인지까지 본다. 라운드5 는 오라클을 손으로 재지정하다 두 번 놓쳤다(bridge 는
+CI 가, server/index 는 감사자가 잡았다). 이 방식은 그 경로를 구조적으로 닫는다.
+
+새 모듈 24개에 타입 검사나 린트를 끄는 주석이 하나도 없다. 억제로 통과시킨 자리가 없다는 뜻이다.
+
+### 걸리는 것 두 가지
+
+단계 함수가 위치 인자를 최대 8개 받는다. `deliverAdapterResponse(requestContext, requestState,
+transportState, sidecarState, responseEffects, completionPolicy, adapterExchange, continuationState)`
+같은 모양이고, 타입이 겹치는 인접 인자 두 개가 바뀌어도 컴파일된다. 라운드4 계획이 제안했던 단일
+`ResponsesTurnState` 객체라면 이 위험이 없다. "상태가 인자 목록으로 샌다" 는 비용을 실제로 지불한 자리다.
+
+`passthrough-dispatch.ts` 가 1,476줄이다. 게이트는 통과하지만 한 파일이 한 가지 일을 한다고 말하기
+어렵고, 덩어리가 `core.ts` 에서 그 옆으로 옮겨간 면이 있다. 이름도 두 계열로 갈린다.
+`request-prepare`, `passthrough-delivery` 는 책임으로 지었고 `core-auth`, `core-errors`,
+`core-normalize` 는 "예전에 core.ts 에 있었다" 는 출처 표시일 뿐이다. 후자는 시간이 지나면 의미가 없다.
+
+### 편입 과정에서 고친 것
+
+`bun x tsc --noEmit` 을 실제로 돌리니 `TS4058` 한 건이 나왔다. `passthrough-dispatch.ts:143` 의
+`preparePassthroughExchange` 가 export 되면서 추론 반환 타입에 `NamespacedTool` 이 노출되는데, 그 인터페이스는
+`src/server/responses-image-gen-repair.ts` 에서 export 되지 않아 이름을 지을 수 없었다. 인터페이스를
+export 해서 해결했다. 원본이 한 파일이었을 때는 그 타입이 모듈 밖으로 나가지 않아 드러나지 않던 종류다.
+
+이 오류는 그 워크트리에 `node_modules` 가 없어 진짜 typecheck 를 못 돌린 탓이고, 담당 에이전트가
+"테스트·타입체크·빌드는 실행하지 않았다" 고 먼저 밝혔다. 편입 쪽에서 주 체크아웃의 `node_modules` 를
+링크해 실제 typecheck 를 돌려 잡았다. 다음 라운드는 이 링크를 먼저 걸고 시작한다 — CI 한 바퀴가
+로컬 30초보다 비싸다.
+
