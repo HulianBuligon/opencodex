@@ -204,12 +204,7 @@ import {
 } from "../lib/package-tree-integrity";
 import { detectInstall } from "../update/index";
 import { createServeOptions, type ServerIngress } from "./index/serve-options";
-import {
-  inspectStartupOwnership,
-  warnAgentTaskRecoveryStartup,
-  warnPlaintextV2AgentMessagesStartup,
-  type StartServerDeps,
-} from "./index/startup-warnings";
+import { inspectStartupOwnership, setStartupCacheInvalidationWrite, warnAgentTaskRecoveryStartup, warnPlaintextV2AgentMessagesStartup, type StartServerDeps } from "./index/startup-warnings";
 
 export function startServer(port?: number, deps: StartServerDeps = {}): Server<WsData> {
   const localAttestationSecret = deps.localAttestationSecret ?? createLocalAttestationSecret();
@@ -252,7 +247,7 @@ export function startServer(port?: number, deps: StartServerDeps = {}): Server<W
   // Resolve unattended service-home authority before any Codex lock, cache, owner,
   // journal, or credential path. Both positive foreign evidence and an unprovable
   // ownership state are non-authority.
-  startupCacheInvalidationWrote = false;
+  setStartupCacheInvalidationWrite(false);
   const resolveServiceHomes = deps.resolveServiceHomes ?? currentServiceHomes;
   let startupOwnershipHomes: ReturnType<typeof currentServiceHomes> | null = null;
   let startupOwnershipStatePaths: readonly string[] | null = null;
@@ -286,7 +281,7 @@ export function startServer(port?: number, deps: StartServerDeps = {}): Server<W
       const outcome = withCatalogWriteSerialization(startupCodexHome, permit =>
         invalidateCodexModelsCacheWithPermit(permit, startupCodexHome));
       // A refused permit is not a write; only a completed run that returned true is.
-      startupCacheInvalidationWrote = outcome.kind === "completed" && outcome.value === true;
+      setStartupCacheInvalidationWrite(outcome.kind === "completed" && outcome.value === true);
     } catch { /* no readable Codex home: nothing to invalidate */ }
   }
   // Arm the `claudeCode` hand-edit guard (devlog 260726_claude_auth_auto/040 H1) BEFORE

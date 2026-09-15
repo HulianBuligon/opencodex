@@ -177,9 +177,19 @@ export function inspectStartupOwnership(
  * deliberately gets no warning — lifecycle diagnostics belong to whoever owns
  * the lifecycle.
  */
-export let startupCacheInvalidationWrote = false;
+let startupCacheInvalidationWrote = false;
 
 /** #1046: did this process's startup cache invalidation actually write? */
+/**
+ * The composition root owns WHEN the startup cache invalidation runs, but the flag lives here
+ * with its reader. An ES import binding is read-only, so the root cannot assign to it across
+ * the module boundary the way it did when both sides were one file. This setter is that
+ * assignment, kept next to the reader so the two cannot drift apart.
+ */
+export function setStartupCacheInvalidationWrite(wrote: boolean): void {
+  startupCacheInvalidationWrote = wrote;
+}
+
 export function consumeStartupCacheInvalidationWrite(): boolean {
   const wrote = startupCacheInvalidationWrote;
   startupCacheInvalidationWrote = false;
