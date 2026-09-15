@@ -24,7 +24,7 @@ getter/setter 로 넘긴다: 전송 예산, adapter, 인증 snapshot, 도구 별
 안 세 번째 describe 를 시뮬레이션이 빠뜨렸다.
 
 core.ts 쪽은 `tests/helpers/responses-core-source.ts` 에 모듈 목록을 상수로 두고
-`readResponsesCoreSource()` 가 그 전부를 이어 읽는다. 그리고 `tests/responses/core-modules.test.ts` 가
+`readResponsesCoreSource()` 가 그 전부를 이어 읽는다. 그리고 `tests/responses/responses-core-modules.test.ts` 가
 그 목록이 실제 소스 import 그래프와 일치하는지 단언한다. 리프를 추가하고 목록에 넣지 않으면 그 테스트가
 실패하므로, 오라클이 조용히 vacuous 해지는 경로가 닫힌다. 다음 라운드는 이 방식을 먼저 쓴다.
 
@@ -61,7 +61,7 @@ core.ts 쪽은 `tests/helpers/responses-core-source.ts` 에 모듈 목록을 상
 원래 지역 변수에 묶어 썼다. 타입을 따로 적어두면 나중에 원본만 바뀌어 조용히 어긋난다. 라운드5 의
 `serveOptions` 추출이 같은 함정을 만났고, 이쪽이 더 깔끔하다.
 
-`core-modules.test.ts` 는 이 라운드에서 가장 값어치 있는 장치다. `core.ts` 에서 형제 import 를 따라
+`responses-core-modules.test.ts` 는 이 라운드에서 가장 값어치 있는 장치다. `core.ts` 에서 형제 import 를 따라
 그래프를 걷고, 발견된 소유자 집합이 선언된 목록과 양방향으로 같은지 단언하고, 각 모듈이 2,000줄 미만인지
 확인하고, 그래프가 비순환인지까지 본다. 라운드5 는 오라클을 손으로 재지정하다 두 번 놓쳤다(bridge 는
 CI 가, server/index 는 감사자가 잡았다). 이 방식은 그 경로를 구조적으로 닫는다.

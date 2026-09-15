@@ -3,7 +3,7 @@ import { repoPath } from "./repo-root";
 
 /**
  * Source-only inventory for cross-owner wiring assertions. Files are read, not
- * executed. core-modules.test.ts compares the inventory to the source import graph.
+ * executed. responses-core-modules.test.ts compares the inventory to the source import graph.
  */
 export const RESPONSES_CORE_MODULES = [
   "core.ts",
