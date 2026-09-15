@@ -61,7 +61,10 @@ describe("loopback listener policy view", () => {
   });
 
   test("both Anthropic routes finish CORS with the listener-effective policy", () => {
-    const source = readFileSync(new URL("../../src/server/index.ts", import.meta.url), "utf8");
+    // The route branches moved into the serve-options leaf when src/server/index.ts became a
+    // facade. Reading the facade would leave every indexOf at -1 and the slices empty, so the
+    // toContain checks below would pass on empty strings.
+    const source = readFileSync(new URL("../../src/server/index/serve-options.ts", import.meta.url), "utf8");
     const countTokensStart = source.indexOf('url.pathname === "/v1/messages/count_tokens"');
     const messagesStart = source.indexOf('url.pathname === "/v1/messages"', countTokensStart + 1);
     const chatStart = source.indexOf('url.pathname === "/v1/chat/completions"', messagesStart);
