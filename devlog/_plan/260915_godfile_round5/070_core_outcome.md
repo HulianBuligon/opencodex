@@ -92,3 +92,27 @@ export 해서 해결했다. 원본이 한 파일이었을 때는 그 타입이 �
 링크해 실제 typecheck 를 돌려 잡았다. 다음 라운드는 이 링크를 먼저 걸고 시작한다 — CI 한 바퀴가
 로컬 30초보다 비싸다.
 
+
+## 편입 검증 결과
+
+독립 감사자가 읽기 전용으로 네 항목을 재측정해 전부 통과했다. 기록할 값어치가 있는 부분만 남긴다.
+
+가변 상태는 실제로 accessor 로 연결돼 있다. 선언이 모두 소유 함수 안의 `let` 이고 반환 객체의 accessor 가
+그 바인딩을 닫는다. 전송 예산은 `request-send-budget.ts` 의 `pendingHopPermit` get/set 이고 리프 write 는
+`passthrough-dispatch.ts` 1142-1144 다. adapter 와 OAuth snapshot, failover 카운터는 `request-transport.ts`
+91-111 선언 / 652-733 get/set 이고 리프가 `transportState.anthropicPoolFailovers += 1` 처럼 쓴다.
+continuation 재시도 카운터는 `adapter-dispatch.ts` 345 의 `let rateLimitRetries` 로 recovery loop **바깥**에
+있고 934-938 get/set 을 통해 `adapter-continuation.ts` 266 이 증가시킨다. 루프 안쪽에 있었다면 재시도마다
+0 으로 돌아가 무한 재시도가 된다. 구조 분해 후 대입하는 위험 패턴은 해당 필드에 없다.
+
+값 순환도 없다. 리프 24개와 `core.ts` 그래프에 `from "./core"` 가 값·타입 모두 없다.
+`compact.ts` 와 `policy-fallback.ts` 가 파사드를 값으로 import 하지만 `core.ts` 가 그 둘을 import 하지
+않으므로 단방향이다. combo 재진입은 `core.ts` 182 에서 만든 `requestDispatchers` 를 주입받아
+`request-prepare.ts` 214 와 `core-combo.ts` 478 이 호출한다.
+
+admission lease 는 두 owner 가 분리돼 있다. 바깥 finally 는 `core.ts` 174-178, native 이관은
+`passthrough-execution.ts` 26-27 에서 `pendingHostAdmissionLease` 를 native 쪽으로 옮기고 null 로 비운 뒤
+48-52 의 native finally 가 받는다. adapter/runTurn 경로는 pending 을 비우지 않으므로 바깥만 해제한다.
+`releaseUpstreamHostAdmission` 이 `activeLeaseIds` 불일치 시 no-op 이고 probe 해제도 id 불일치면 return
+하므로 이중 해제 경로가 아니다.
+
