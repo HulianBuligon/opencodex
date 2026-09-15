@@ -106,12 +106,38 @@ export function namespacedToolName(namespace: string | undefined, name: string):
   const flat = namespace ? `${namespace}__${name}` : name;
   const nativeKey = nativeKeyOf(namespace, name);
   if (flat.length <= TOOL_NAME_WIRE_LIMIT) {
-    // Canonical names are claimed too, so a bounded alias can never take (or lose) the
-    // spelling and route a call to the wrong tool after a restart or catalog reorder.
-    claimWireName(flat, nativeKey);
-    return flat;
+    // A canonical that collides with an already-allocated bounded alias is re-aliased
+    // instead of shadowing it. In the normal request flow `reserveToolWireNames` ran first,
+    // so this path never triggers and in-limit names keep their plain spelling.
+    if (claimWireName(flat, nativeKey)) return flat;
+    return boundedToolWireAlias(nativeKey, flat);
   }
   return boundedToolWireAlias(nativeKey, flat);
+}
+
+/**
+ * Pass-one wire-name reservation for a complete request catalog: every in-limit canonical
+ * name is claimed first, then bounded aliases for over-limit identities are allocated in
+ * stable identity (nativeKey) order. Call once per parsed request before any wire name is
+ * derived; afterwards `namespacedToolName`/`dottedToolName` memo-hits, so the identity→wire
+ * mapping never depends on the order later callers touch the tools in (#4679 review).
+ */
+export function reserveToolWireNames(tools: readonly Pick<OcxTool, "namespace" | "name">[] | undefined): void {
+  if (!tools || tools.length === 0) return;
+  const overLimit: { nativeKey: string; flat: string }[] = [];
+  for (const tool of tools) {
+    if (!tool || typeof tool.name !== "string" || tool.name.length === 0) continue;
+    const flat = tool.namespace ? `${tool.namespace}__${tool.name}` : tool.name;
+    if (flat.length <= TOOL_NAME_WIRE_LIMIT) {
+      claimWireName(flat, nativeKeyOf(tool.namespace, tool.name));
+      continue;
+    }
+    overLimit.push({ nativeKey: nativeKeyOf(tool.namespace, tool.name), flat });
+  }
+  overLimit.sort((left, right) => (left.nativeKey < right.nativeKey ? -1 : left.nativeKey > right.nativeKey ? 1 : 0));
+  for (const entry of overLimit) {
+    if (!boundedAliasByNative.has(entry.nativeKey)) boundedToolWireAlias(entry.nativeKey, entry.flat);
+  }
 }
 
 /**
