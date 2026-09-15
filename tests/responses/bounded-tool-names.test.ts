@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { dottedToolName, namespacedToolName } from "../../src/types/tools";
+import { dottedToolName, namespacedToolName, toolChoiceAliases } from "../../src/types/tools";
 
 describe("bounded tool wire names (#4679)", () => {
   test("keeps flat names at or under the 64-char wire limit unchanged", () => {
@@ -37,3 +37,10 @@ describe("bounded tool wire names (#4679)", () => {
     expect(namespacedToolName(undefined, name)).toBe(wire);
   });
 });
+
+  test("tool choice aliases collapse to a single entry for a bounded alias", () => {
+    const identity = { namespace: "mcp__codex_apps__safety_settings", name: "prepare_parental_control_update" };
+    const aliases = toolChoiceAliases(identity);
+    expect(aliases.length).toBe(1);
+    expect(aliases[0].length).toBeLessThanOrEqual(64);
+  });

@@ -190,7 +190,10 @@ export function declaresCodeModeExec(declared: ReadonlySet<string> | undefined):
 
 export function toolChoiceAliases(tool: Pick<OcxTool, "namespace" | "name">): string[] {
   const wireName = namespacedToolName(tool.namespace, tool.name);
-  return tool.namespace ? [wireName, dottedToolName(tool.namespace, tool.name)] : [wireName];
+  if (!tool.namespace) return [wireName];
+  // A bounded alias has no distinct dotted spelling, so the two spellings collapse into one.
+  const dotted = dottedToolName(tool.namespace, tool.name);
+  return dotted === wireName ? [wireName] : [wireName, dotted];
 }
 
 function sameToolIdentity(
