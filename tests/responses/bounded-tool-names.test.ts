@@ -1,4 +1,6 @@
+import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "bun:test";
+import { repoPath } from "../helpers/repo-root";
 import { dottedToolName, namespacedToolName, toolChoiceAliases } from "../../src/types/tools";
 
 describe("bounded tool wire names (#4679)", () => {
@@ -43,4 +45,24 @@ describe("bounded tool wire names (#4679)", () => {
     const aliases = toolChoiceAliases(identity);
     expect(aliases.length).toBe(1);
     expect(aliases[0].length).toBeLessThanOrEqual(64);
+  });
+
+  test("bounded aliases are stable across fresh processes (restart contract)", () => {
+    const identity = { namespace: "mcp__codex_apps__safety_settings", name: "prepare_parental_control_update" };
+    const script =
+      "(async () => {" +
+      `const m = await import(new URL(${JSON.stringify("file://" + repoPath("src", "types", "tools.ts"))}).href);` +
+      `console.log(m.namespacedToolName(${JSON.stringify(identity.namespace)}, ${JSON.stringify(identity.name)}));` +
+      "})();";
+    const run = () => spawnSync(process.execPath, ["-e", script], { encoding: "utf8" });
+    const first = run();
+    const second = run();
+    expect(first.status).toBe(0);
+    expect(second.status).toBe(0);
+    const alias = first.stdout.trim();
+    expect(alias.length).toBeLessThanOrEqual(64);
+    // A fresh process derives the same alias for the same identity: no process-local state
+    // participates in the derivation, so the restart contract holds.
+    expect(second.stdout.trim()).toBe(alias);
+    expect(namespacedToolName(identity.namespace, identity.name)).toBe(alias);
   });
